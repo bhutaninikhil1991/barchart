@@ -1,0 +1,22 @@
+body, textarea {
+  /* TODO: set font */
+}
+
+body {
+  /* TODO: set margin, padding, background */
+  /* see https://developer.mozilla.org/en-US/docs/Web/CSS/color_value */
+}
+
+textarea {
+  /* TODO: set text area position and style */
+}
+
+textarea, svg {
+  /* TODO: add border to text area and svg */
+}
+
+svg {
+  /* TODO: set svg size and style */
+}
+
+/* TODO: style svg elements */
