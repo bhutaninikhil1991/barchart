@@ -1,20 +1,257 @@
 <!DOCTYPE html>
 
 <head>
-<meta charset="utf-8">
+  <meta charset="utf-8">
 
-<title>Letter Count Bar Chart</title>
+  <title>Monthly Passenger Count for Year 2019</title>
+  <!-- include d3.js v5 -->
+  <script src="https://d3js.org/d3.v5.min.js"></script>
 
-<!-- TODO: include stylesheets -->
+  <!-- include d3.js modules -->
+  <script src="https://d3js.org/d3-array.v2.min.js"></script>
+
+  <!-- TODO: include stylesheets -->
+  <link href="style.css" rel="stylesheet" type="text/css">
 </head>
 
 <body>
 
-<!-- TODO: include html elements -->
-Hello world!
+  <h2>Monthly Air Passenger Statistics for Year 2019</h2>
+  <!-- TODO: include html elements -->
+  <svg></svg>
 
-<!-- TODO: include external javascript -->
+  <p>Nikhil Bhutani</p>
+  <p>Source: <a href="https://data.sfgov.org/Transportation/Air-Traffic-Passenger-Statistics/rkru-6vcg/data" target="_blank">data.sfgov.org/Transportation/Air-Traffic-Passenger-Statistics/rkru-6vcg/data</p>
 
-<!-- TODO: embed starter javascript -->
+  <script type="text/javascript">
+    let chart = {};
+
+    let csv = 'Air_Traffic_Passenger_Statistics_V1.csv';
+
+    d3.csv(csv, convertRow).then(drawBarChart);
+
+    // try: parseColumnName('201103');
+    let parseColumnName = d3.timeParse('%Y%m');
+
+    function convertRow(row, index) {
+      let out = {};
+      for (let col in row) {
+        switch (col) {
+          case 'GEO_Summary':
+            out[col] = row[col];
+            break;
+
+          case 'Passenger_Count':
+            out[col] = parseInt(row[col]);
+            break;
+
+          case 'Activity_Period':
+            out[col] = parseColumnName(row[col]);
+            break;
+
+          default:
+            break;
+        }
+      }
+      return out; // TODO
+    }
+
+    function drawBarChart(data) {
+      // TODO: implement function
+      console.log(data);
+      console.log(data[0]);
+      // https://github.com/d3/d3-array/blob/master/README.md
+      let svg = d3.select("body").select("svg");
+
+      //grouping and sorting of data
+      let dataGroup = d3.nest()
+        .key(function(d) {
+          return new Date(d.Activity_Period);
+        })
+        .key(function(d) {
+          return d.GEO_Summary;
+        })
+        .sortKeys(d3.ascending)
+        .rollup(function(v) {
+          return d3.sum(v, function(d) {
+            return d.Passenger_Count;
+          });
+        })
+        .entries(data)
+        .map(function(group) {
+          return {
+            "date": new Date(group.key),
+            "values": group.values.map(function(subgroup) {
+              return {
+                "GEO_Summary": subgroup.key,
+                "value": subgroup.value
+              }
+            })
+          }
+        }).sort(function(a, b) {
+          return a.date - b.date;
+        });
+
+      data = dataGroup;
+
+      console.log(data);
+
+      let categories = data[0].values.map(value => value.GEO_Summary);
+      console.log(categories);
+
+      let dates = data.map(function(d) {
+        return d.date;
+      });
+      console.log(dates);
+
+
+      let countMin = 0;
+      let countMax = d3.max(data, function(c) {
+        return d3.max(c.values, function(d) {
+          return d.value;
+        });
+      });
+
+      if (isNaN(countMax)) {
+        countMax = 0;
+      }
+
+      console.log("count bounds:", [countMin, countMax]);
+
+      let margin = {
+        top: 20,
+        right: 20,
+        bottom: 30,
+        left: 60
+      };
+
+      let bounds = svg.node().getBoundingClientRect();
+      let plotWidth = bounds.width - margin.right - margin.left;
+      let plotHeight = bounds.height - margin.top - margin.bottom;
+
+
+      let x0 = d3.scaleBand()
+        .domain(dates)
+        .range([0, plotWidth])
+        .paddingInner(0.1);
+
+      let x1 = d3.scaleBand()
+        .domain(categories)
+        .range([0, x0.bandwidth()])
+        .padding(0.05);
+
+      let y = d3.scaleLinear()
+        .domain([countMin, countMax])
+        .range([plotHeight, 0])
+        .nice();
+
+      let plot = svg.append("g").attr("id", "plot");
+      plot.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      let xAxis = d3.axisBottom(x0);
+      let yAxis = d3.axisLeft(y);
+
+      plot.append("text")
+        .style("text-anchor", "end")
+        .attr("y", 6)
+        .attr("dy", ".71em")
+        .attr('transform', 'rotate(-90)')
+        .text("Passenger Count");
+
+      xAxis.tickFormat(dateFormatter);
+      yAxis.tickFormat(countFormatter);
+
+      let xGroup = plot.append("g").attr("id", "x-axis");
+      xGroup.call(xAxis);
+      xGroup.attr("transform", "translate(0," + plotHeight + ")");
+
+      let yGroup = plot.append("g").attr("id", "y-axis");
+      yGroup.call(yAxis);
+
+      let color = d3.scaleOrdinal()
+        .range(["#1F77B4", "#FF7F0E"]);
+
+      let slice = plot.selectAll(".slice")
+        .data(data)
+        .enter().append("g")
+        .attr("class", "g")
+        .attr("transform", function(d) {
+          return "translate(" + x0(d.date) + ",0)";
+        });
+
+      let bars = slice.selectAll("rect")
+        .data(function(d) {
+          return d.values;
+        })
+
+      // we use the enter() selection to add new bars for new data
+      bars.enter().append("rect")
+        // we will style using css
+        .attr("class", "bar")
+        // the width of our bar is determined by our band scale
+        .attr("width", x1.bandwidth())
+        .attr("x", function(d) {
+          return x1(d.GEO_Summary);
+        })
+        .style("fill", function(d) {
+          return color(d.GEO_Summary);
+        })
+        .attr("y", function(d) {
+          return y(d.value);
+        })
+        .attr("height", function(d) {
+          return plotHeight - y(d.value);
+        })
+
+      function dateFormatter(d) {
+        let month = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        return month[d.getMonth()];
+      }
+
+      function countFormatter(d) {
+        return (d / 1000000).toFixed(2) + "M";
+      }
+
+      //Legend
+      var legend = plot.selectAll(".legend")
+        .data(data[0].values.map(function(d) {
+          return d.GEO_Summary;
+        }).reverse())
+        .enter().append("g")
+        .attr("class", "legend")
+        .attr("transform", function(d, i) {
+          return "translate(0," + i * 20 + ")";
+        })
+        .style("opacity", "0");
+
+      legend.append("rect")
+        .attr("x", plotWidth - 18)
+        .attr("width", 18)
+        .attr("height", 18)
+        .style("fill", function(d) {
+          return color(d);
+        });
+
+      legend.append("text")
+        .attr("x", plotWidth - 24)
+        .attr("y", 9)
+        .attr("dy", ".35em")
+        .style("text-anchor", "end")
+        .text(function(d) {
+          return d;
+        });
+
+        plot.append("text")
+          .attr("class", "label")
+          .attr("x", 780)
+          .attr("y", "-10")
+          .attr("dy", ".35em")
+          .text("GEO Summary")
+
+      legend.transition().duration(500).delay(function(d, i) {
+        return 1300 + 100 * i;
+      }).style("opacity", "1");
+    };
+  </script>
 
 </body>

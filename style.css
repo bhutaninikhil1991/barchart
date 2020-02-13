@@ -1,22 +1,27 @@
-body, textarea {
-  /* TODO: set font */
-}
-
 body {
+  /* TODO: set font */
+  font-family: 'Roboto', sans-serif;
+  font-weight: 300;
+  font-size: 11pt;
   /* TODO: set margin, padding, background */
   /* see https://developer.mozilla.org/en-US/docs/Web/CSS/color_value */
+  margin: 5px;
+  padding: 0px;
+  background-color: whitesmoke;
 }
 
-textarea {
-  /* TODO: set text area position and style */
-}
-
-textarea, svg {
-  /* TODO: add border to text area and svg */
-}
+.label {
+    font-weight: bold;
+  }
 
 svg {
   /* TODO: set svg size and style */
+  width: 960px;
+  height: 500px;
+  /* TODO: add border to text area and svg */
+  border: 1px solid gainsboro;
+  border-radius: 10px;
+  background-color: white;
 }
 
 /* TODO: style svg elements */
